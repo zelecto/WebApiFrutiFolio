@@ -100,6 +100,68 @@ namespace WebApiFrutiFolio.Controllers
             return NoContent();
         }
 
+        // GET: api/TiendaVirtuals/by-username/{nombreUsuario}
+        [HttpGet("username/{nombreUsuario}")]
+        public async Task<ActionResult<TiendaVirtual>> GetTiendaVirtualByNombreUsuario(string nombreUsuario)
+        {
+            var tiendaVirtual = await _context.TiendasVirtuales
+                                              .FirstOrDefaultAsync(t => t.Username == nombreUsuario);
+
+            if (tiendaVirtual == null)
+            {
+                return NotFound();
+            }
+
+            return tiendaVirtual;
+        }
+
+        [HttpGet("by-username/{nombreUsuario}/pedidos")]
+        public async Task<ActionResult<TiendaVirtualPedidoSummary>> GetTiendaYPedidosPorUsuarioYFecha(
+    string nombreUsuario,
+    [FromQuery] string fecha,
+    [FromQuery] string estado = "completado")
+        {
+            // Buscar la tienda por nombre de usuario
+            var tiendaVirtual = await _context.TiendasVirtuales
+                                              .FirstOrDefaultAsync(t => t.Username == nombreUsuario);
+
+            if (tiendaVirtual == null)
+            {
+                return NotFound("Tienda no encontrada");
+            }
+
+            // Validar y convertir la fecha
+            if (!DateOnly.TryParse(fecha, out DateOnly fechaParsed))
+            {
+                return BadRequest("Formato de fecha inválido");
+            }
+
+            // Buscar los pedidos según el estado y la fecha especificada
+            var pedidos = await _context.Pedidos
+                                        .Include(p => p.Factura)
+                                        .Where(p => p.Id_Tienda == tiendaVirtual.Id &&
+                                                    p.Factura.Fecha == fechaParsed &&
+                                                    p.Estado == estado)
+                                        .ToListAsync();
+
+            // Calcular el total de pedidos y la suma de cobros
+            var totalPedidos = pedidos.Count;
+            var sumaTotalCobros = pedidos.Sum(p => p.Factura.Preciototal);
+
+            var resultado = new TiendaVirtualPedidoSummary
+            {
+                Tienda = tiendaVirtual,
+                TotalPedidos = totalPedidos,
+                SumaTotalCobros = sumaTotalCobros
+            };
+
+            return Ok(resultado);
+        }
+
+
+
+
+
         private bool TiendaVirtualExists(int id)
         {
             return _context.TiendasVirtuales.Any(e => e.Id == id);
