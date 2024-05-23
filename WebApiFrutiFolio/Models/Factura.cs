@@ -20,4 +20,6 @@ public partial class Factura
     public virtual ICollection<DetallesProductosVendido>? DetallesProductosVendidos { get; set; } = new List<DetallesProductosVendido>();
     [JsonIgnore]
     public virtual Usuario? UsuarioUsernameNavigation { get; set; } = null!;
+    [JsonIgnore]
+    public virtual ICollection<Pedido>? Pedidos { get; set; } // Ahora es opcional
 }
