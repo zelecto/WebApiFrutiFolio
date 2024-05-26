@@ -157,6 +157,24 @@ namespace WebApiFrutiFolio.Controllers
             return NoContent();
         }
 
+        // Nuevo endpoint para consultar productos de un usuario filtrados por stock
+        [HttpGet("/api/productos/Usuarios/{username}/FiltrarPorStock")]
+        public async Task<ActionResult<List<Producto>>> GetProductosByOwnerAndStock(string username, [FromQuery] bool stockMayorAZero)
+        {
+            var productos = await _context.Productos
+                                          .Where(p => p.Username == username && p.Activo == true)
+                                          .Where(p => stockMayorAZero ? p.Stock > 0 : p.Stock == 0)
+                                          .ToListAsync();
+
+            if (productos == null || productos.Count == 0)
+            {
+                return NotFound(); // O devuelve un código de estado HTTP 404 si no se encuentran productos que cumplan los criterios
+            }
+
+            return productos;
+        }
+
+
         private bool ProductoExists(int id)
         {
             return _context.Productos.Any(e => e.Id == id);

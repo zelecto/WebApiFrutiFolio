@@ -158,6 +158,75 @@ namespace WebApiFrutiFolio.Controllers
             return Ok(resultado);
         }
 
+        // GET: api/TiendaVirtuals/by-city/{ciudad}
+        [HttpGet("by-city/{ciudad}")]
+        public async Task<ActionResult<IEnumerable<TiendaVirtual>>> GetTiendasByCiudad(string ciudad)
+        {
+            var tiendas = await _context.TiendasVirtuales
+                                        .Where(t => t.Ciudad == ciudad)
+                                        .ToListAsync();
+
+            if (tiendas == null || !tiendas.Any())
+            {
+                return NotFound("No se encontraron tiendas en la ciudad especificada.");
+            }
+
+            return Ok(tiendas);
+        }
+
+        // GET: api/TiendaVirtuals/TopFrutasDisponiblesByCity/{ciudad}
+        [HttpGet("TopFrutasDisponiblesByCity/{ciudad}")]
+        public async Task<ActionResult<object>> GetTopFrutasDisponiblesByCiudad(string ciudad)
+        {
+            var tiendas = await _context.TiendasVirtuales
+                                        .Where(t => t.Ciudad == ciudad)
+                                        .ToListAsync();
+
+            if (tiendas == null || !tiendas.Any())
+            {
+                return NotFound("No se encontraron tiendas en la ciudad especificada.");
+            }
+
+            // Obtener el mes y año actual
+            var fechaActual = DateTime.Now;
+            int mesActual = fechaActual.Month;
+            int añoActual = fechaActual.Year;
+
+            // Lista para almacenar el resultado
+            var resultado = new List<object>();
+
+            foreach (var tienda in tiendas)
+            {
+                // Consultar los detalles de productos vendidos para la tienda actual en el mes actual
+                var detallesProductos = await _context.DetallesProductosVendidos
+                    .Where(dp => dp.IdfacturaNavigation != null &&
+                                 dp.IdfacturaNavigation.UsuarioUsername == tienda.Username &&
+                                 dp.IdfacturaNavigation.Fecha.Month == mesActual &&
+                                 dp.IdfacturaNavigation.Fecha.Year == añoActual)
+                    .GroupBy(dp => dp.Idproducto)
+                    .Select(group => new
+                    {
+                        ProductoId = group.Key,
+                        TotalVendido = group.Sum(dp => dp.Cantidadvendida),
+                        Imagen = group.FirstOrDefault().producto.Img // Obtener la imagen del producto
+                    })
+                    .OrderByDescending(g => g.TotalVendido)
+                    .Take(5) // Limitar a 5 productos más vendidos
+                    .ToListAsync();
+
+                // Agregar el resultado de la tienda actual a la lista de resultados
+                resultado.Add(new
+                {
+                    Tienda = tienda,
+                    TopFrutasDisponibles = detallesProductos
+                });
+            }
+
+            return Ok(resultado);
+        }
+
+
+
 
 
 

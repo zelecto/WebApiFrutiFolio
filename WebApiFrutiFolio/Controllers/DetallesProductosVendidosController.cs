@@ -155,5 +155,54 @@ namespace WebApiFrutiFolio.Controllers
             return detallesProductosVendidos;
         }
 
+        // GET: api/TiendaVirtuals/TopVendidosByCity/{ciudad}
+        [HttpGet("TopVendidosByCity/{ciudad}")]
+        public async Task<ActionResult<object>> GetTiendasAndTopVendidosByCiudad(string ciudad)
+        {
+            var tiendas = await _context.TiendasVirtuales
+                                        .Where(t => t.Ciudad == ciudad)
+                                        .ToListAsync();
+
+            if (tiendas == null || !tiendas.Any())
+            {
+                return NotFound("No se encontraron tiendas en la ciudad especificada.");
+            }
+
+            // Obtener el mes y año actual
+            var fechaActual = DateTime.Now;
+            int mesActual = fechaActual.Month;
+            int añoActual = fechaActual.Year;
+
+            // Obtener el ID de todas las tiendas en la ciudad
+            var tiendaIds = tiendas.Select(t => t.Id).ToList();
+
+            // Consultar los 5 productos más vendidos en el mes actual para todas las facturas asociadas a las tiendas en la ciudad
+            var topVendidos = await _context.DetallesProductosVendidos
+                .Where(dp => dp.IdfacturaNavigation != null &&
+                             dp.IdfacturaNavigation.Pedidos.Any(p => tiendaIds.Contains(p.Id_Tienda)) &&
+                             dp.IdfacturaNavigation.Fecha.Month == mesActual &&
+                             dp.IdfacturaNavigation.Fecha.Year == añoActual)
+                .GroupBy(dp => dp.Idproducto)
+                .Select(group => new
+                {
+                    ProductoId = group.Key,
+                    TotalVendido = group.Sum(dp => dp.Cantidadvendida),
+                    Imagen = group.FirstOrDefault().producto.Img // Obtener la imagen del producto
+                })
+                .OrderByDescending(g => g.TotalVendido)
+                .Take(5) // Limitar a 5 productos más vendidos
+                .ToListAsync();
+
+            var resultado = new
+            {
+                Tiendas = tiendas,
+                TopVendidos = topVendidos
+            };
+
+            return Ok(resultado);
+        }
+
+
+
     }
 }

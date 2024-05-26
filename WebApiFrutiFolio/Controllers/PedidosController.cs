@@ -134,6 +134,45 @@ namespace WebApiFrutiFolio.Controllers
             return pedidos;
         }
 
+        [HttpPatch("{id}/ActualizarEstadoYPrecioEnvio")]
+        public async Task<ActionResult<Pedido>> PatchActualizarEstadoYPrecioEnvio(int id, [FromBody] ActualizarEstadoYPrecioEnvioRequest request)
+        {
+            var pedido = await _context.Pedidos.FindAsync(id);
+
+            if (pedido == null)
+            {
+                return NotFound();
+            }
+
+            pedido.Estado = request.Estado;
+            pedido.PrecioTransporte = request.PrecioEnvio;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!PedidoExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return Ok(pedido);
+        }
+
+        public class ActualizarEstadoYPrecioEnvioRequest
+        {
+            public string Estado { get; set; }
+            public decimal PrecioEnvio { get; set; }
+        }
+
+
 
 
 

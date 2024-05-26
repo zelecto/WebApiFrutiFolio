@@ -16,6 +16,9 @@ namespace WebApiFrutiFolio.Models
 
         [JsonIgnore]
         public virtual ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
+
+        [JsonIgnore]
+        public virtual Ciudad? CiudadNavigation { get; set; }
     }
 }
 

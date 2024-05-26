@@ -24,6 +24,8 @@ namespace WebApiFrutiFolio.Context
         public virtual DbSet<ClienteUsuario> ClienteUsuarios { get; set; }
         public virtual DbSet<TiendaVirtual> TiendasVirtuales { get; set; }
         public virtual DbSet<Pedido> Pedidos { get; set; }
+        public virtual DbSet<Ciudad> Ciudad { get; set; }
+
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
             => optionsBuilder.UseNpgsql("Host=ep-odd-recipe-a5janyq7.us-east-2.aws.neon.fl0.io;Database=FruityFolio;Username=fl0user;Password=Z4sUG0dhImCX");
@@ -183,12 +185,17 @@ namespace WebApiFrutiFolio.Context
                 entity.Property(e => e.DireccionResidencia)
                     .HasMaxLength(255)
                     .HasColumnName("direccion_residencia");
-
+                entity.HasOne(d => d.CiudadNavigation)
+                   .WithMany()
+                   .HasForeignKey(d => d.Ciudad)
+                   .OnDelete(DeleteBehavior.ClientSetNull)
+                   .HasConstraintName("FK_ClienteUsuario_Ciudad");
                 entity.HasMany(e => e.Pedidos)
                     .WithOne(p => p.ClienteUsuario)
                     .HasForeignKey(p => p.Username_Cliente)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("pedido_cliente_usuario_fkey");
+
             });
 
             modelBuilder.Entity<TiendaVirtual>(entity =>
@@ -205,8 +212,14 @@ namespace WebApiFrutiFolio.Context
                     .HasMaxLength(255)
                     .HasColumnName("nombre");
                 entity.Property(e => e.Ciudad)
-                    .HasMaxLength(255)
-                    .HasColumnName("ciudad");
+                       .HasMaxLength(255)
+                       .HasColumnName("ciudad");
+
+                entity.HasOne(d => d.CiudadNavigation)
+                   .WithMany()
+                   .HasForeignKey(d => d.Ciudad)
+                   .OnDelete(DeleteBehavior.ClientSetNull)
+                   .HasConstraintName("FK_TiendaVirtual_Ciudad");
                 entity.Property(e => e.Direccion)
                     .HasMaxLength(255)
                     .HasColumnName("direccion");
@@ -256,11 +269,24 @@ namespace WebApiFrutiFolio.Context
                     .HasForeignKey(d => d.Username_Cliente)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("pedido_cliente_usuario_fkey");
+
+               
             });
+
+            modelBuilder.Entity<Ciudad>(entity =>
+            {
+                entity.ToTable("ciudad"); // Nombre de la tabla en la base de datos
+                entity.HasKey(e => e.nombre); // Definir la clave primaria
+            });
+
+
+
+
 
             OnModelCreatingPartial(modelBuilder);
         }
 
         partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+        
     }
 }
