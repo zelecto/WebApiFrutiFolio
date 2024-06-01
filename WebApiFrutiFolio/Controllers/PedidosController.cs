@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -171,6 +172,80 @@ namespace WebApiFrutiFolio.Controllers
             public string Estado { get; set; }
             public decimal PrecioEnvio { get; set; }
         }
+
+        // GET: api/Pedidos/CantidadPorMes
+        [HttpGet("CantidadPorMes")]
+        public async Task<ActionResult<IEnumerable<object>>> GetCantidadPedidosPorMes(
+            [FromQuery] DateOnly fechaInicio,
+            [FromQuery] DateOnly fechaFin,
+            [FromQuery] string username)
+        {
+            try
+            {
+                // Obtener la tienda asociada al username
+                var tienda = await _context.TiendasVirtuales
+                                           .FirstOrDefaultAsync(t => t.Username == username);
+
+                if (tienda == null)
+                {
+                    return NotFound($"No se encontró ninguna tienda asociada al usuario '{username}'.");
+                }
+
+                // Filtrar pedidos por rango de fechas, ID de la tienda y estado "Entregado"
+                var pedidos = await _context.Pedidos
+                    .Include(p => p.Factura)
+                    .Where(p => p.Factura.Fecha >= fechaInicio
+                             && p.Factura.Fecha <= fechaFin
+                             && p.Id_Tienda == tienda.Id
+                             && p.Estado == "Entregado")  // Agregar filtro por estado "Entregado"
+                    .ToListAsync();
+
+                // Agrupar por mes y contar los pedidos
+                var cantidadPorMes = pedidos
+                    .GroupBy(p => new { p.Factura.Fecha.Year, p.Factura.Fecha.Month })
+                    .Select(g => new
+                    {
+                        Mes = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMMM", new CultureInfo("es-ES")),
+                        CantidadPedidos = g.Count()
+                    })
+                    .ToList();
+
+                return Ok(cantidadPorMes);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Se produjo un error en el servidor: {ex.Message}");
+            }
+        }
+
+        // Nuevo endpoint para obtener pedidos por clientusername y estado (opcional)
+        // Nuevo endpoint para obtener pedidos por clientusername y estado (opcional), incluyendo datos de la factura
+        [HttpGet("cliente/{clientusername}")]
+        public async Task<ActionResult<IEnumerable<Pedido>>> GetPedidosByClientUsernameAndEstado(string clientusername, [FromQuery] string? estado = null)
+        {
+            var query = _context.Pedidos
+                                .Include(p => p.Factura) // Incluye los datos de la factura
+                                .Include(p=>p.Factura.Cliente)
+                                .Include(p => p.ClienteUsuario)
+                                .Where(p => p.Username_Cliente == clientusername)
+                                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(estado))
+            {
+                query = query.Where(p => p.Estado == estado);
+            }
+
+            var pedidos = await query.ToListAsync();
+
+            if (pedidos == null || pedidos.Count == 0)
+            {
+                return NotFound();
+            }
+
+            return pedidos;
+        }
+
+
 
 
 

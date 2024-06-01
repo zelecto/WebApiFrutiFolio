@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -153,7 +154,7 @@ namespace WebApiFrutiFolio.Controllers
 
         // GET: api/Facturas/ByUser/{username}
         [HttpGet("ByUser/{username}")]
-        public async Task<ActionResult<IEnumerable<Factura>>> GetFacturasByUser(string username)
+        public async Task<ActionResult<IEnumerable<Factura>>> GetFacturasByUser(string username, [FromQuery] DateOnly? fechaInicio, [FromQuery] DateOnly? fechaFinal)
         {
             // Buscar el usuario en la base de datos por su nombre
             var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Username == username);
@@ -163,19 +164,34 @@ namespace WebApiFrutiFolio.Controllers
                 return NotFound($"No se encontró ningún usuario con el nombre '{username}'.");
             }
 
-            // Obtener todas las facturas del usuario, incluyendo los datos del cliente asociado a cada factura
-            var facturas = await _context.Facturas
-                                        .Include(f => f.Cliente)
-                                        .Where(f => f.UsuarioUsername == username)
-                                        .ToListAsync();
+            // Crear la consulta para obtener las facturas del usuario
+            var query = _context.Facturas
+                                .Include(f => f.Cliente)
+                                .Where(f => f.UsuarioUsername == username)
+                                .AsQueryable();
+
+            // Aplicar el filtro de rango de fechas si se proporcionaron
+            if (fechaInicio.HasValue)
+            {
+                query = query.Where(f => f.Fecha >= fechaInicio.Value);
+            }
+
+            if (fechaFinal.HasValue)
+            {
+                query = query.Where(f => f.Fecha <= fechaFinal.Value);
+            }
+
+            // Ejecutar la consulta
+            var facturas = await query.ToListAsync();
 
             if (facturas.Count == 0)
             {
-                return NotFound($"No se encontraron facturas para el usuario '{username}'.");
+                return NotFound($"No se encontraron facturas para el usuario '{username}' en el rango de fechas proporcionado.");
             }
 
             return facturas;
         }
+
 
 
 
@@ -195,6 +211,41 @@ namespace WebApiFrutiFolio.Controllers
 
             return NoContent();
         }
+
+        [HttpGet("IngresosPorDia")]
+        public async Task<ActionResult<IEnumerable<object>>> GetIngresosPorDia(
+    [FromQuery] DateOnly fechaInicio,
+    [FromQuery] DateOnly fechaFin,
+    [FromQuery] string username)
+        {
+            // Verificar si el nombre de usuario es válido
+            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Username == username);
+            if (user == null)
+            {
+                return NotFound($"No se encontró ningún usuario con el nombre '{username}'.");
+            }
+
+            // Filtrar facturas por rango de fechas y nombre de usuario
+            var query = _context.Facturas
+                                .Where(f => f.Fecha >= fechaInicio && f.Fecha <= fechaFin && f.UsuarioUsername == username);
+
+            // Obtener las facturas y calcular el total de ingresos por día
+            var facturas = await query.ToListAsync();
+
+            var ingresosPorDia = facturas
+                .GroupBy(f => f.Fecha)
+                .Select(g => new
+                {
+                    Dia = g.Key.Day, // Formato de fecha
+                    TotalIngresos = g.Sum(f => f.Preciototal)
+                })
+                .ToList();
+
+            return Ok(ingresosPorDia);
+        }
+
+
+
 
         private bool FacturaExists(int id)
         {

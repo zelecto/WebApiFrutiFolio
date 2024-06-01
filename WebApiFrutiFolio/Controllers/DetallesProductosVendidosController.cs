@@ -202,6 +202,44 @@ namespace WebApiFrutiFolio.Controllers
             return Ok(resultado);
         }
 
+        [HttpGet("VentasPorProductoEnRangoFechas")]
+        public async Task<ActionResult<IEnumerable<object>>> GetVentasPorProductoEnRangoFechas(DateOnly fechaInicio, DateOnly fechaFin, string username)
+        {
+            if (fechaInicio > fechaFin)
+            {
+                return BadRequest("La fecha de inicio no puede ser mayor que la fecha de fin.");
+            }
+
+            var query = _context.DetallesProductosVendidos
+                .Where(dp => dp.IdfacturaNavigation != null && dp.IdfacturaNavigation.Fecha >= fechaInicio && dp.IdfacturaNavigation.Fecha <= fechaFin)
+                .Include(dp => dp.producto)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(username))
+            {
+                query = query.Where(dp => dp.IdfacturaNavigation.UsuarioUsername == username);
+            }
+
+            var ventasPorProducto = await query
+                .GroupBy(dp => dp.producto.Name)
+                .Select(group => new
+                {
+                    NombreProducto = group.Key,
+                    CantidadVendida = group.Sum(dp => dp.Cantidadvendida),
+                    IngresoTotal = group.Sum(dp => dp.Cantidadvendida * dp.producto.Price) // Calcular el ingreso total por fruta
+                })
+                .OrderByDescending(result => result.CantidadVendida) // Ordenar por CantidadVendida descendente
+                .ToListAsync();
+
+            if (!ventasPorProducto.Any())
+            {
+                return NotFound("No se encontraron ventas en el rango de fechas especificado.");
+            }
+
+            return Ok(ventasPorProducto);
+        }
+
+
 
 
     }
