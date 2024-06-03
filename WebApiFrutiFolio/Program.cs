@@ -5,6 +5,7 @@ using WebApiFrutiFolio.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 var CorsRules = "Reglas";
@@ -12,6 +13,9 @@ var CorsRules = "Reglas";
 
 builder.Configuration.AddJsonFile("appsettings.json");
 builder.Services.AddDbContext<FruityFolioContext>(con => con.UseNpgsql(builder.Configuration.GetConnectionString("Fl0ServerConnection")));
+
+
+
 
 builder.Services.AddCors(opt =>
 {

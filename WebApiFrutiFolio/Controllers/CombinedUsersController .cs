@@ -14,6 +14,7 @@ using System.IdentityModel.Tokens.Jwt;
 
 using System.Text;
 using Azure.Core;
+using NuGet.Common;
 
 namespace WebApiFrutiFolio.Controllers
 {
@@ -56,9 +57,10 @@ namespace WebApiFrutiFolio.Controllers
             var clienteUsuario = await _context.ClienteUsuarios.FindAsync(id);
             if (clienteUsuario != null)
             {
-                if (contraseña == usuario.Password)
+                if (contraseña == clienteUsuario.Password)
                 {
-                    return new { Tipo = "ClienteUsuario", cuenta = clienteUsuario };
+                    string token = GenerarToken(clienteUsuario.Username);
+                    return new { Tipo = "ClienteUsuario", cuenta = clienteUsuario, Token = token };
                 }
                 else
                 {

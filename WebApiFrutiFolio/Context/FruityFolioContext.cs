@@ -28,7 +28,7 @@ namespace WebApiFrutiFolio.Context
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-            => optionsBuilder.UseNpgsql("Host=ep-odd-recipe-a5janyq7.us-east-2.aws.neon.fl0.io;Database=FruityFolio;Username=fl0user;Password=Z4sUG0dhImCX");
+            => optionsBuilder.UseNpgsql("Host=dpg-cpej1ovsc6pc739nstu0-a.oregon-postgres.render.com;Database=fruityfolio;Username=zelecto;Password=TcoxBvUXvH27o3klQAhnbJqJQMEjNT95");
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
