@@ -131,6 +131,22 @@ namespace WebApiFrutiFolio.Controllers
                 return BadRequest("La contraseña del usuario debe tener entre 8 y 50 caracteres.");
             }
 
+            // Validar duplicados
+            if (await _context.Usuarios.AnyAsync(u => u.Cedula == usuario.Cedula))
+            {
+                return Conflict("Ya existe un usuario con esta cédula.");
+            }
+
+            if (await _context.Usuarios.AnyAsync(u => u.Username == usuario.Username))
+            {
+                return Conflict("Ya existe un usuario con este user name.");
+            }
+
+            if (!string.IsNullOrEmpty(usuario.Correo) && await _context.Usuarios.AnyAsync(u => u.Correo == usuario.Correo))
+            {
+                return Conflict("Ya existe un usuario con este correo electrónico.");
+            }
+
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
 

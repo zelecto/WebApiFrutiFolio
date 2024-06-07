@@ -228,7 +228,8 @@ namespace WebApiFrutiFolio.Controllers
                 {
                     NombreProducto = group.Key,
                     CantidadVendida = group.Sum(dp => dp.Cantidadvendida),
-                    IngresoTotal = group.Sum(dp => dp.Cantidadvendida * dp.producto.Price) // Calcular el ingreso total por fruta
+                    IngresoTotal = group.Sum(dp => dp.Cantidadvendida * dp.producto.Price), // Calcular el ingreso total por fruta
+                    StockActual = group.FirstOrDefault().producto.Stock // Obtener el stock actual del producto
                 })
                 .OrderByDescending(result => result.CantidadVendida) // Ordenar por CantidadVendida descendente
                 .ToListAsync();
@@ -240,6 +241,7 @@ namespace WebApiFrutiFolio.Controllers
 
             return Ok(ventasPorProducto);
         }
+
 
 
 
